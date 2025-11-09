@@ -8,23 +8,7 @@ from auth import get_user_from_db
 
 router = APIRouter()
 
-@router.get("/rooms", response_model=List[Room])
-async def get_rooms(current_user: dict = Depends(get_current_user)):
-    """
-    Get a list of all rooms.
-    Accessible to authenticated users (student, curator).
-    """
-    if not current_user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
-    user = await get_user_from_db(current_user["email"])
-    if user["role"] not in ["student", "curator"]:
-        raise HTTPException(status_code=403, detail="Forbidden")
-
-    rooms = await db.rooms.find().to_list(1000)
-    return rooms
-
-@router.get("/rooms/rooms", response_model=List[Room])
+@router.get("/", response_model=List[Room])
 async def get_available_rooms(
     tower: str,
     start_time: datetime,
@@ -72,7 +56,7 @@ async def get_available_rooms(
             
     return available_rooms
 
-@router.get("/rooms/{id}/availability")
+@router.get("/{id}/availability")
 async def get_room_availability(id: str, date: date, current_user: dict = Depends(get_current_user)):
     """
     Get the availability of a room for a specific date.
