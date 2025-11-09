@@ -57,7 +57,7 @@ class ApplicationCreate(BaseModel):
 @router.post("/", response_model=EventApplication, status_code=status.HTTP_201_CREATED)
 async def create_application(
     application_data: ApplicationCreate,
-    current_user: User = Depends(role_checker(["student"])),
+    current_user: User = Depends(role_checker(["student", "curator"])),
 ):
     data = application_data.model_dump(mode="python")
     data.update(
