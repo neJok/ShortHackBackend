@@ -73,7 +73,7 @@ async def create_application(
 
 
 @router.get("/pendings", response_model=List[EventApplication])
-async def get_applications(
+async def get_pendings_applications(
     current_user: User = Depends(role_checker(["student", "curator", "admin"])),
 ):
     if current_user.role == "student":
@@ -83,12 +83,12 @@ async def get_applications(
     applications = await db.applications.find().to_list(None)
     return applications
 
-@router.get("/pendings", response_model=List[EventApplication])
-async def get_applications():
+@router.get("/all", response_model=List[EventApplication])
+async def get_all_applications_():
     return await db.applications.find({"status": "approved"}).to_list(None)
 
 
-@router.get("/{id}", response_model=EventApplication)
+@router.get("/one/{id}", response_model=EventApplication)
 async def get_application(
     id: str,
 ):
@@ -99,7 +99,7 @@ async def get_application(
     return application
 
 
-@router.patch("/{id}/moderate", response_model=EventApplication)
+@router.patch("/one/{id}/moderate", response_model=EventApplication)
 async def moderate_application(
     id: str,
     moderation: ModerationRequest,
