@@ -1,9 +1,9 @@
+import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Optional
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, validator
 from datetime import datetime
 from models import EventType
-from bson import ObjectId
 
 from db import db, collection
 from models import EventApplication, User
@@ -62,40 +62,38 @@ async def create_application(
     data['organizer_id'] = current_user.id
     data['organizer_name'] = current_user.full_name
     data['status'] = "pending"
-    application = EventApplication(**application_data.model_dump())
+    data['_id'] = str(uuid.uuid4())
+    application = EventApplication(**data)
 
-    new_application = await db.applications.insert_one(
+    await db.applications.insert_one(
         application.model_dump(by_alias=True, exclude=["id"])
     )
-    created_application = await db.applications.find_one(
-        {"_id": new_application.inserted_id}
-    )
-    return created_application
+    return data
 
 
-@router.get("/", response_model=List[EventApplication])
+@router.get("/pendings", response_model=List[EventApplication])
 async def get_applications(
     current_user: User = Depends(role_checker(["student", "curator", "admin"])),
 ):
     if current_user.role == "student":
-        applications = await db.applications.find({"organizer_id": current_user.id}).to_list(1000)
+        applications = await db.applications.find({"organizer_id": current_user.id, "status": "pendings"}).to_list(None)
         return applications
 
-    applications = await db.applications.find().to_list(1000)
+    applications = await db.applications.find().to_list(None)
     return applications
+
+@router.get("/pendings", response_model=List[EventApplication])
+async def get_applications():
+    return await db.applications.find({"status": "approved"}).to_list(None)
 
 
 @router.get("/{id}", response_model=EventApplication)
 async def get_application(
     id: str,
-    current_user: User = Depends(role_checker(["student", "curator", "admin"])),
 ):
-    application = await db.applications.find_one({"_id": ObjectId(id)})
+    application = await db.applications.find_one({"_id": id})
     if application is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заявка не найдена")
-
-    if current_user.role == "student" and application["organizer_id"] != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Не авторизован для доступа к этой заявке")
 
     return application
 
@@ -106,7 +104,7 @@ async def moderate_application(
     moderation: ModerationRequest,
     current_user: User = Depends(role_checker(["curator"])),
 ):
-    application = await db.applications.find_one({"_id": ObjectId(id)})
+    application = await db.applications.find_one({"_id": id})
     if application is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заявка не найдена")
 
@@ -118,7 +116,7 @@ async def moderate_application(
         conflicting_applications = await db.applications.find({
             "assigned_room_id": moderation.assigned_room_id,
             "status": "approved",
-            "_id": {"$ne": ObjectId(id)},
+            "_id": {"$ne": id},
             "start_time": {"$lt": application["end_time"]},
             "end_time": {"$gt": application["start_time"]},
         }).to_list(1)
@@ -131,9 +129,9 @@ async def moderate_application(
         "assigned_room_id": moderation.assigned_room_id,
         "curator_comment": moderation.curator_comment,
     }
-    await db.applications.update_one({"_id": ObjectId(id)}, {"$set": update_data})
+    await db.applications.update_one({"_id": id}, {"$set": update_data})
     ststus_changed_user_tg = collection.find_one("user_tg_id")
     if ststus_changed_user_tg:
         await send_notif(status, ststus_changed_user_tg)
-    updated_application = await db.applications.find_one({"_id": ObjectId(id)})
+    updated_application = await db.applications.find_one({"_id": id})
     return updated_application
