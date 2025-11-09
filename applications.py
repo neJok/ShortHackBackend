@@ -12,11 +12,11 @@ router = APIRouter()
 
 class ModerationRequest(BaseModel):
     status: str
-    assigned_room_id: Optional[int] = None
+    assigned_room_id: Optional[str] = None
     curator_comment: Optional[str] = None
 
 
-@router.post("/applications", response_model=EventApplication, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=EventApplication, status_code=status.HTTP_201_CREATED)
 async def create_application(
     application_data: ApplicationCreate,
     current_user: User = Depends(role_checker(["student"])),
@@ -39,7 +39,7 @@ async def create_application(
     return created_application
 
 
-@router.get("/applications", response_model=List[EventApplication])
+@router.get("/", response_model=List[EventApplication])
 async def get_applications(
     current_user: User = Depends(role_checker(["student", "curator", "admin"])),
 ):
@@ -51,22 +51,22 @@ async def get_applications(
     return applications
 
 
-@router.get("/applications/{id}", response_model=EventApplication)
+@router.get("/{id}", response_model=EventApplication)
 async def get_application(
     id: str,
     current_user: User = Depends(role_checker(["student", "curator", "admin"])),
 ):
     application = await db.applications.find_one({"_id": ObjectId(id)})
     if application is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заявка не найдена")
 
     if current_user.role == "student" and application["organizer_id"] != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to access this application")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Не авторизован для доступа к этой заявке")
 
     return application
 
 
-@router.patch("/applications/{id}/moderate", response_model=EventApplication)
+@router.patch("/{id}/moderate", response_model=EventApplication)
 async def moderate_application(
     id: str,
     moderation: ModerationRequest,
@@ -74,11 +74,11 @@ async def moderate_application(
 ):
     application = await db.applications.find_one({"_id": ObjectId(id)})
     if application is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заявка не найдена")
 
     if moderation.status == "approved":
         if not moderation.assigned_room_id:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Assigned room ID is required for approval")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Идентификатор назначенной комнаты обязателен для подтверждения")
 
         # Check for room availability
         conflicting_applications = await db.applications.find({
@@ -90,7 +90,7 @@ async def moderate_application(
         }).to_list(1)
 
         if conflicting_applications:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Room is already booked for this time")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Комната уже забронирована на это время")
 
     update_data = {
         "status": moderation.status,
@@ -101,19 +101,3 @@ async def moderate_application(
 
     updated_application = await db.applications.find_one({"_id": ObjectId(id)})
     return updated_application
-from datetime import datetime
-
-
-@router.get("/events", response_model=List[EventApplication])
-async def get_events(
-    start_date: Optional[datetime] = None,
-    end_date: Optional[datetime] = None,
-):
-    query = {"status": "approved"}
-    if start_date:
-        query["end_time"] = {"$gte": start_date}
-    if end_date:
-        query["start_time"] = {"$lte": end_date}
-
-    events = await db.applications.find(query).to_list(1000)
-    return events

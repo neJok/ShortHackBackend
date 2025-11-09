@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from auth import router as auth_router
 from applications import router as applications_router
 from rooms import router as rooms_router
+from events import router as events_router
 
 app = FastAPI(
     title="Univent API",
@@ -21,6 +22,7 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(applications_router, prefix="/applications", tags=["applications"])
 app.include_router(rooms_router, prefix="/rooms", tags=["rooms"])
+app.include_router(events_router, prefix="/events", tags=["events"])
 
 @app.get("/")
 async def ping():

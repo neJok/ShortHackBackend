@@ -61,9 +61,8 @@ class EventApplication(BaseModel):
     organizer_id: str
     expected_participants: int
     needs: str
-    room_id: Optional[int] = None
     status: str = "pending"  # pending, approved, rejected
-    assigned_room_id: Optional[int] = None
+    assigned_room_id: Optional[str] = None
     curator_comment: Optional[str] = None
 
 
@@ -83,24 +82,22 @@ class ApplicationCreate(BaseModel):
         event_type = values.get("event_type")
         if event_type == EventType.ONLINE:
             if v is not None:
-                raise ValueError("Location must not be provided for an ONLINE event.")
+                raise ValueError("Местоположение не должно быть указано для ОНЛАЙН мероприятия.")
         elif event_type == EventType.OFFLINE:
             if v is None:
-                raise ValueError("Location is required for an OFFLINE event.")
+                raise ValueError("Местоположение обязательно для ОФФЛАЙН мероприятия.")
 
             if "type" not in v or v["type"] not in ["dukat", "custom"]:
-                raise ValueError("Location type must be 'dukat' or 'custom'.")
+                raise ValueError("Тип местоположения должен быть 'dukat' или 'custom'.")
 
             if v["type"] == "dukat":
                 tower = v.get("tower")
                 room_number = v.get("room_number")
                 if tower not in ["F", "B"] or not room_number:
-                    raise ValueError("Invalid Dukat location details.")
-                if not is_valid_dukat_room(tower, room_number):
-                    raise ValueError("Invalid room.")
+                    raise ValueError("Неверные данные местоположения Dukat.")
             elif v["type"] == "custom":
                 if not v.get("address"):
-                    raise ValueError("Address is required for a custom location.")
+                    raise ValueError("Адрес обязателен для пользовательского местоположения.")
         return v
 
 class UserCreate(BaseModel):
@@ -112,3 +109,14 @@ class Token(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+
+
+class BookedSlot(BaseModel):
+    title: str
+    start_time: datetime
+    end_time: datetime
+
+
+class RoomAvailabilityResponse(BaseModel):
+    date: date
+    booked_slots: List[BookedSlot]
