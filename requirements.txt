@@ -8,3 +8,5 @@ pymongo
 uvicorn
 pydantic-settings
 python-multipart
+aiogram
+asyncio

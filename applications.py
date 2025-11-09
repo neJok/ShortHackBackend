@@ -3,10 +3,10 @@ from typing import List, Optional
 from pydantic import BaseModel
 from bson import ObjectId
 
-from db import db
+from db import db, collection
 from models import EventApplication, User
 from security import role_checker
-
+from bot import send_notif
 router = APIRouter()
 
 
@@ -93,6 +93,8 @@ async def moderate_application(
         "curator_comment": moderation.curator_comment,
     }
     await db.applications.update_one({"_id": ObjectId(id)}, {"$set": update_data})
-
+    ststus_changed_user_tg = collection.find_one("user_tg_id")
+    if ststus_changed_user_tg:
+        await send_notif(status, ststus_changed_user_tg)
     updated_application = await db.applications.find_one({"_id": ObjectId(id)})
     return updated_application
