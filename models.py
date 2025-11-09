@@ -42,6 +42,7 @@ class Room(BaseModel):
     id: Optional[str] = Field(default_factory=lambda: str(ObjectId()), alias="_id")
     name: str
     capacity: int
+    tower: str
     equipment: List[str] = []
 
 class Event(BaseModel):
