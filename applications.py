@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, validator
+from datetime import datetime
+from models import EventType
 from bson import ObjectId
 
 from db import db, collection
@@ -14,6 +16,41 @@ class ModerationRequest(BaseModel):
     status: str
     assigned_room_id: Optional[str] = None
     curator_comment: Optional[str] = None
+
+
+class ApplicationCreate(BaseModel):
+    title: str
+    description: str
+    start_time: datetime
+    end_time: datetime
+    expected_participants: int
+    needs: str
+    image_url: str | None = None
+    event_type: EventType
+    location: dict | None = None
+
+    @validator("location", always=True)
+    def validate_location(cls, v, values):
+        event_type = values.get("event_type")
+        if event_type == EventType.ONLINE:
+            if v is not None:
+                raise ValueError("Местоположение не должно быть указано для ОНЛАЙН мероприятия.")
+        elif event_type == EventType.OFFLINE:
+            if v is None:
+                raise ValueError("Местоположение обязательно для ОФФЛАЙН мероприятия.")
+
+            if "type" not in v or v["type"] not in ["dukat", "custom"]:
+                raise ValueError("Тип местоположения должен быть 'dukat' или 'custom'.")
+
+            if v["type"] == "dukat":
+                tower = v.get("tower")
+                room_number = v.get("room_number")
+                if tower not in ["F", "B"] or not room_number:
+                    raise ValueError("Неверные данные местоположения Dukat.")
+            elif v["type"] == "custom":
+                if not v.get("address"):
+                    raise ValueError("Адрес обязателен для пользовательского местоположения.")
+        return v
 
 
 @router.post("/", response_model=EventApplication, status_code=status.HTTP_201_CREATED)
