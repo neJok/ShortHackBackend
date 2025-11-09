@@ -15,7 +15,7 @@ async def register(user_in: UserCreate):
     if user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered",
+            detail="Email уже зарегистрирован",
         )
     hashed_password = get_password_hash(user_in.password)
     user_data = user_in.dict(exclude={"password"})
@@ -33,7 +33,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     if not user or not verify_password(form_data.password, user["hashed_password"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
+            detail="Неверный email или пароль",
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token = create_access_token(data={"sub": str(user["_id"])})

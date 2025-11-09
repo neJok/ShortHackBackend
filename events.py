@@ -24,31 +24,31 @@ class EventCreateRequest(BaseModel):
         event_type = values.get('event_type')
         if event_type == EventType.ONLINE:
             if v is not None:
-                raise ValueError("Location must not be provided for an ONLINE event.")
+                raise ValueError("Местоположение не должно быть указано для ОНЛАЙН мероприятия.")
             return None
         elif event_type == EventType.OFFLINE:
             if v is None or not v:
-                raise ValueError("Location is required for an OFFLINE event.")
+                raise ValueError("Местоположение обязательно для ОФФЛАЙН мероприятия.")
 
             if "type" not in v or v["type"] not in ["dukat", "custom"]:
-                raise ValueError("Location type must be 'dukat' or 'custom'.")
+                raise ValueError("Тип местоположения должен быть 'dukat' или 'custom'.")
 
             if v["type"] == "dukat":
                 tower = v.get("tower")
                 room_number = v.get("room_number")
                 if tower not in ["F", "B"] or not room_number:
-                    raise ValueError("Dukat location must specify 'tower' ('F' or 'B') and 'room_number'.")
+                    raise ValueError("Для местоположения Dukat должны быть указаны 'tower' ('F' или 'B') и 'room_number'.")
                 if not is_valid_dukat_room(tower, room_number):
-                    raise ValueError("Invalid Dukat room.")
+                    raise ValueError("Неверная комната Dukat.")
             elif v["type"] == "custom":
                 if not v.get("address"):
-                    raise ValueError("Custom location must specify a non-empty 'address'.")
+                    raise ValueError("Для пользовательского местоположения должен быть указан непустой 'address'.")
         return v
 
 router = APIRouter()
 
 
-@router.post("/events", response_model=Event, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=Event, status_code=status.HTTP_201_CREATED)
 async def create_event(
     event: EventCreateRequest,
     current_user: User = Depends(role_checker(["student", "curator", "admin"])),
@@ -70,3 +70,23 @@ async def create_event(
     )
     
     return db_event
+
+
+from typing import List
+from db import db
+from models import EventApplication
+from datetime import datetime
+
+@router.get("/", response_model=List[EventApplication])
+async def get_events(
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+):
+    query = {"status": "approved"}
+    if start_date:
+        query["end_time"] = {"$gte": start_date}
+    if end_date:
+        query["start_time"] = {"$lte": end_date}
+
+    events = await db.applications.find(query).to_list(1000)
+    return events
