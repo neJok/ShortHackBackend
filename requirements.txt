@@ -1,9 +1,9 @@
 motor
 fastapi
 pydantic
-passlib
-python-jose
+passlib[bcrypt]
+python-jose[cryptography]
 pymongo
 uvicorn
 pydantic-settings
-
+python-multipart
