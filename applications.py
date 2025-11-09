@@ -14,7 +14,6 @@ router = APIRouter()
 
 class ModerationRequest(BaseModel):
     status: str
-    assigned_room_id: Optional[str] = None
     curator_comment: Optional[str] = None
 
 
@@ -106,16 +105,12 @@ async def moderate_application(
     current_user: User = Depends(role_checker(["curator"])),
 ):
     application = await db.applications.find_one({"_id": id})
-    if application is None:
+    if application is None or current_user.role not in ["curator", "admin"]:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заявка не найдена")
 
     if moderation.status == "approved":
-        if not moderation.assigned_room_id:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Идентификатор назначенной комнаты обязателен для подтверждения")
-
-        # Check for room availability
         conflicting_applications = await db.applications.find({
-            "assigned_room_id": moderation.assigned_room_id,
+            "location.room_id": application.get('location', {}).get('room_id'),
             "status": "approved",
             "_id": {"$ne": id},
             "start_time": {"$lt": application["end_time"]},
@@ -127,7 +122,6 @@ async def moderate_application(
 
     update_data = {
         "status": moderation.status,
-        "assigned_room_id": moderation.assigned_room_id,
         "curator_comment": moderation.curator_comment,
     }
     await db.applications.update_one({"_id": id}, {"$set": update_data})

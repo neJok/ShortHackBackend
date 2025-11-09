@@ -105,7 +105,7 @@ async def find_available_rooms(
         
         # Check for conflicting applications
         conflicting_applications = await db.event_applications.find({
-            "assigned_room_id": room.id,
+            "location.room_id": room.id,
             "status": "approved",
             "$or": [
                 {
