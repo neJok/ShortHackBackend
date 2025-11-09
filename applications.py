@@ -109,13 +109,15 @@ async def moderate_application(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заявка не найдена")
 
     if moderation.status == "approved":
-        conflicting_applications = await db.applications.find({
-            "location.room_id": application.get('location', {}).get('room_id'),
+        request = {
             "status": "approved",
             "_id": {"$ne": id},
             "start_time": {"$lt": application["end_time"]},
             "end_time": {"$gt": application["start_time"]},
-        }).to_list(1)
+        }
+        if application.get("location") and application["location"].get("room_id"):
+            request["location.room_id"] = application["location"]["room_id"]
+        conflicting_applications = await db.applications.find(request).to_list(1)
 
         if conflicting_applications:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Комната уже забронирована на это время")
