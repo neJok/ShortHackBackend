@@ -6,7 +6,6 @@ from fastapi import Form
 from fastapi.security import OAuth2PasswordRequestForm
 from enum import Enum
 
-from rooms import is_valid_dukat_room
 
 
 class EventType(Enum):
