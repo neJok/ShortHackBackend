@@ -1,0 +1,72 @@
+x-backend-app-environment: &x-backend-app-environment
+  # Mongo
+  MONGO_URI: ${MONGO_URI}
+  MONGO_DATABASE_NAME: ${MONGO_DATABASE_NAME}
+
+
+services:
+  # db:
+  #   container_name: db
+  #   image: mongo:latest
+  #   volumes:
+  #     - db_data:/data/db
+  #   expose:
+  #     - "27017"
+  #   networks:
+  #     app_network:
+  #       aliases:
+  #         - db.lvh.me
+  #   healthcheck:
+  #     test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 30s
+
+  app:
+    container_name: app
+    platform: linux/amd64
+    pid: "host"
+    build:
+      context: .
+    environment:
+      <<: *x-backend-app-environment
+    expose:
+      - "8080"
+    # depends_on:
+    #   db:
+    #     condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.00'
+          memory: '2Gb'
+        reservations:
+          cpus: '0.60'
+          memory: '1Gb'
+    networks:
+      app_network:
+        aliases:
+          - app.lvh.me
+
+  nginx:
+    container_name: nginx
+    image: nginx:1.29.2-alpine
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    ports:
+      - "80:80"
+    depends_on:
+      - app
+    networks:
+      app_network:
+        aliases:
+          - nginx.lvh.me
+
+networks:
+  app_network:
+    external: false
+
+
+volumes:
+  db_data:
