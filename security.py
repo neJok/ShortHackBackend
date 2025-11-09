@@ -45,6 +45,10 @@ def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+async def get_user_from_db(user_id: str):
+    user = await db.users.find_one({"_id": user_id})
+    if user:
+        return User(**user)
 
 class TokenData(BaseModel):
     user_id: str | None = None

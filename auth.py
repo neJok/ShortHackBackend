@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from models import User, UserCreate, Token, OAuth2EmailRequestForm
-from security import get_password_hash, verify_password, create_access_token, create_refresh_token, get_current_user
+from security import get_password_hash, verify_password, create_access_token, create_refresh_token, get_current_user, get_user_from_db
 from db import db
 from typing import Optional
 
