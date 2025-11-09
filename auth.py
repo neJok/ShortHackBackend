@@ -1,7 +1,9 @@
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
-from models import User, UserCreate, Token
-from security import get_password_hash, verify_password, create_access_token, create_refresh_token, get_current_user
+
+from models import User, UserCreate, Token, OAuth2PasswordRequestForm
+from security import get_password_hash, verify_password, create_access_token, create_refresh_token, get_current_user, get_user_from_db
 from db import db
 from typing import Optional
 
@@ -18,6 +20,7 @@ async def register(user_in: UserCreate):
     hashed_password = get_password_hash(user_in.password)
     user_data = user_in.dict(exclude={"password"})
     user_data["hashed_password"] = hashed_password
+    user_data["_id"] = str(uuid.uuid4())
     new_user = await db.users.insert_one(user_data)
     created_user = await db.users.find_one({"_id": new_user.inserted_id})
     access_token = create_access_token(data={"sub": str(created_user["_id"])})
@@ -26,11 +29,11 @@ async def register(user_in: UserCreate):
 
 @router.post("/login", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = await db.users.find_one({"email": form_data.email})
+    user = await db.users.find_one({"email": form_data.username})
     if not user or not verify_password(form_data.password, user["hashed_password"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token = create_access_token(data={"sub": str(user["_id"])})

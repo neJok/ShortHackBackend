@@ -45,6 +45,10 @@ def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+async def get_user_from_db(user_id: str):
+    user = await db.users.find_one({"_id": user_id})
+    if user:
+        return User(**user)
 
 class TokenData(BaseModel):
     user_id: str | None = None
@@ -64,7 +68,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         token_data = TokenData(user_id=user_id)
     except JWTError:
         raise credentials_exception
-    user = await db.users.find_one({"_id": ObjectId(token_data.user_id)})
+    user = await db.users.find_one({"_id": token_data.user_id})
     if user is None:
         raise credentials_exception
     return User(**user)
