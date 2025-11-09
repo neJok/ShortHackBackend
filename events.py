@@ -20,9 +20,6 @@ class EventCreate(BaseModel):
 def create_event(event: EventCreate, status_code=status.HTTP_201_CREATED):
     event_dict = event.dict()
     result = collection.insert_one(event_dict)
-
-    # Берём вставленный id и возвращаем обратно в формате JSON
-    return EventResponse(id=str(result.inserted_id), **event_dict)
     return {
             "title": "Турнир по шахматам",
             "description": "Ежегодный осенний турнир для всех желающих.",
