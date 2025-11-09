@@ -34,6 +34,7 @@ class Room(BaseModel):
     id: Optional[str] = Field(default_factory=lambda: str(ObjectId()), alias="_id")
     name: str
     capacity: int
+    equipment: List[str] = []
 
 class EventApplication(BaseModel):
     id: Optional[str] = Field(default_factory=lambda: str(ObjectId()), alias="_id")
@@ -42,11 +43,21 @@ class EventApplication(BaseModel):
     start_time: datetime
     end_time: datetime
     organizer_id: str
+    expected_participants: int
+    needs: str
     room_id: Optional[int] = None
     status: str = "pending"  # pending, approved, rejected
     assigned_room_id: Optional[int] = None
     curator_comment: Optional[str] = None
 
+
+class ApplicationCreate(BaseModel):
+    title: str
+    description: str
+    start_time: datetime
+    end_time: datetime
+    expected_participants: int
+    needs: str
 class UserCreate(BaseModel):
     full_name: str
     email: str

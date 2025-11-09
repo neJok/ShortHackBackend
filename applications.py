@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from bson import ObjectId
 
 from db import db
-from models import EventApplication, User
+from models import EventApplication, User, ApplicationCreate
 from security import role_checker
 
 router = APIRouter()
@@ -18,12 +18,17 @@ class ModerationRequest(BaseModel):
 
 @router.post("/applications", response_model=EventApplication, status_code=status.HTTP_201_CREATED)
 async def create_application(
-    application: EventApplication,
+    application_data: ApplicationCreate,
     current_user: User = Depends(role_checker(["student"])),
 ):
-    application.organizer_id = current_user.id
-    application.status = "pending"
-    application.room_id = None # Explicitly set room_id to None on creation
+    application = EventApplication(
+        **application_data.model_dump(),
+        organizer_id=current_user.id,
+        status="pending",
+        room_id=None,
+        assigned_room_id=None,
+        curator_comment=None,
+    )
 
     new_application = await db.applications.insert_one(
         application.model_dump(by_alias=True, exclude=["id"])
@@ -96,3 +101,19 @@ async def moderate_application(
 
     updated_application = await db.applications.find_one({"_id": ObjectId(id)})
     return updated_application
+from datetime import datetime
+
+
+@router.get("/events", response_model=List[EventApplication])
+async def get_events(
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+):
+    query = {"status": "approved"}
+    if start_date:
+        query["end_time"] = {"$gte": start_date}
+    if end_date:
+        query["start_time"] = {"$lte": end_date}
+
+    events = await db.applications.find(query).to_list(1000)
+    return events
