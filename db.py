@@ -3,3 +3,5 @@ from core.config import settings
 
 client = AsyncIOMotorClient(settings.mongo_uri)
 db = client[settings.mongo_database_name]
+
+collection = db["users"]

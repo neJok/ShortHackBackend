@@ -3,10 +3,10 @@ from typing import List, Optional
 from pydantic import BaseModel
 from bson import ObjectId
 
-from db import db
-from models import EventApplication, User, ApplicationCreate
+from db import db, collection
+from models import EventApplication, User
 from security import role_checker
-
+from bot import send_notif
 router = APIRouter()
 
 
@@ -18,17 +18,12 @@ class ModerationRequest(BaseModel):
 
 @router.post("/", response_model=EventApplication, status_code=status.HTTP_201_CREATED)
 async def create_application(
-    application_data: ApplicationCreate,
+    application: EventApplication,
     current_user: User = Depends(role_checker(["student"])),
 ):
-    application = EventApplication(
-        **application_data.model_dump(),
-        organizer_id=current_user.id,
-        status="pending",
-        room_id=None,
-        assigned_room_id=None,
-        curator_comment=None,
-    )
+    application.organizer_id = current_user.id
+    application.status = "pending"
+    application.room_id = None # Explicitly set room_id to None on creation
 
     new_application = await db.applications.insert_one(
         application.model_dump(by_alias=True, exclude=["id"])
@@ -98,6 +93,8 @@ async def moderate_application(
         "curator_comment": moderation.curator_comment,
     }
     await db.applications.update_one({"_id": ObjectId(id)}, {"$set": update_data})
-
+    ststus_changed_user_tg = collection.find_one("user_tg_id")
+    if ststus_changed_user_tg:
+        await send_notif(status, ststus_changed_user_tg)
     updated_application = await db.applications.find_one({"_id": ObjectId(id)})
     return updated_application
