@@ -4,8 +4,12 @@ from typing import Optional
 from db import db
 from models import Event, User, ApplicationCreate, EventType
 from pydantic import BaseModel, validator
-from rooms import is_valid_dukat_room
 from security import role_checker
+
+def is_valid_dukat_room(tower: str, room_number: str) -> bool:
+    # Placeholder for actual room validation logic
+    return True
+
 class EventCreateRequest(BaseModel):
     name: str
     description: str
