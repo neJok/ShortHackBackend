@@ -65,10 +65,8 @@ async def create_application(
     data['_id'] = str(uuid.uuid4())
     application = EventApplication(**data)
 
-    await db.applications.insert_one(
-        application.model_dump(by_alias=True, exclude=["id"])
-    )
-    return data
+    await db.applications.insert_one(data)
+    return application
 
 
 @router.get("/pendings", response_model=List[EventApplication])
