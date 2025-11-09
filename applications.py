@@ -60,7 +60,7 @@ async def create_application(
     application_data: ApplicationCreate,
     current_user: User = Depends(role_checker(["student"])),
 ):
-    data = application_data.model_dump(mode="python")  # enum уже строкой
+    data = application_data.model_dump(mode="python")
     data.update(
         organizer_id=str(current_user.id),
         organizer_name=current_user.full_name,
