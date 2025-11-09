@@ -79,7 +79,7 @@ async def get_pendings_applications(
         applications = await db.applications.find({"organizer_id": current_user.id, "status": "pendings"}).to_list(None)
         return applications
 
-    applications = await db.applications.find().to_list(None)
+    applications = await db.applications.find({"status": "pendings"}).to_list(None)
     return applications
 
 @router.get("/all", response_model=List[EventApplication])
