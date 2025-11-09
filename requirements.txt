@@ -4,4 +4,4 @@ pydantic
 passlib
 python-jose
 pymongo
-uvicorn
+pydantic-settings
