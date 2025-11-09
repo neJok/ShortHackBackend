@@ -18,12 +18,13 @@ class ModerationRequest(BaseModel):
 
 @router.post("/", response_model=EventApplication, status_code=status.HTTP_201_CREATED)
 async def create_application(
-    application: EventApplication,
+    application_data: ApplicationCreate,
     current_user: User = Depends(role_checker(["student"])),
 ):
+    application = EventApplication(**application_data.model_dump())
     application.organizer_id = current_user.id
     application.status = "pending"
-    application.room_id = None # Explicitly set room_id to None on creation
+    application.assigned_room_id = None # Explicitly set room_id to None on creation
 
     new_application = await db.applications.insert_one(
         application.model_dump(by_alias=True, exclude=["id"])
