@@ -7,7 +7,7 @@ from typing import Optional
 
 router = APIRouter()
 
-@router.post("/register", response_model=User)
+@router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
 async def register(user_in: UserCreate):
     user = await db.users.find_one({"email": user_in.email})
     if user:
@@ -20,7 +20,9 @@ async def register(user_in: UserCreate):
     user_data["hashed_password"] = hashed_password
     new_user = await db.users.insert_one(user_data)
     created_user = await db.users.find_one({"_id": new_user.inserted_id})
-    return created_user
+    access_token = create_access_token(data={"sub": str(created_user["_id"])})
+    refresh_token = create_refresh_token(data={"sub": str(created_user["_id"])})
+    return {"access_token": access_token, "refresh_token": refresh_token}
 
 @router.post("/login", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):

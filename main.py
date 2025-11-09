@@ -2,6 +2,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from auth import router as auth_router
+from applications import router as applications_router
 
 app = FastAPI(
     title="Univent API",
@@ -17,6 +18,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(applications_router, prefix="/applications", tags=["applications"])
 
 @app.get("/")
 async def ping():
