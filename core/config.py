@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    mongo_uri: str = "mongodb://admin:dfghdfjkghdfkjghdfkjgh@138.124.49.112:27017/?authSource=admin"
+    mongo_uri: str
 
     class Config:
         env_file = ".env"
