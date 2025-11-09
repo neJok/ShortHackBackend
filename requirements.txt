@@ -1,2 +1,6 @@
-fastapi=0.121.1
-pydantic=2.12.4
+motor
+fastapi
+pydantic
+passlib
+python-jose
+pymongo
