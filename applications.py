@@ -1,7 +1,7 @@
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Optional
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, validator, ConfigDict
 from datetime import datetime
 from models import EventType
 
@@ -28,6 +28,8 @@ class ApplicationCreate(BaseModel):
     image_url: str | None = None
     event_type: EventType
     location: dict | None = None
+    
+    model_config = ConfigDict(use_enum_values=True)
 
     @validator("location", always=True)
     def validate_location(cls, v, values):
@@ -58,15 +60,16 @@ async def create_application(
     application_data: ApplicationCreate,
     current_user: User = Depends(role_checker(["student"])),
 ):
-    data = application_data.model_dump()
-    data['organizer_id'] = current_user.id
-    data['organizer_name'] = current_user.full_name
-    data['status'] = "pending"
-    data['_id'] = str(uuid.uuid4())
-    application = EventApplication(**data)
+    data = application_data.model_dump(mode="python")  # enum уже строкой
+    data.update(
+        organizer_id=str(current_user.id),
+        organizer_name=current_user.full_name,
+        status="pending",
+        _id=str(uuid.uuid4()),
+    )
 
     await db.applications.insert_one(data)
-    return application
+    return EventApplication(**data)
 
 
 @router.get("/pendings", response_model=List[EventApplication])
