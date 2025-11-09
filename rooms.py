@@ -58,3 +58,10 @@ async def get_room_availability(id: str, date: date, current_user: dict = Depend
         })
 
     return {"date": date, "booked_slots": booked_slots}
+
+def is_valid_dukat_room(tower: str, room_number: str) -> bool:
+    """
+    Checks if a room in the Dukat building is valid.
+    Placeholder implementation.
+    """
+    return True

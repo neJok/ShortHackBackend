@@ -1,9 +1,18 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 from typing import Optional, List
 from datetime import datetime
 from bson import ObjectId
 from fastapi import Form
 from fastapi.security import OAuth2PasswordRequestForm
+from enum import Enum
+
+from rooms import is_valid_dukat_room
+
+
+class EventType(Enum):
+    ONLINE = "ONLINE"
+    OFFLINE = "OFFLINE"
+
 
 class OAuth2EmailRequestForm(OAuth2PasswordRequestForm):
     def __init__(
@@ -36,6 +45,13 @@ class Room(BaseModel):
     capacity: int
     equipment: List[str] = []
 
+class Event(BaseModel):
+    id: Optional[str] = Field(default_factory=lambda: str(ObjectId()), alias="_id")
+    image_url: Optional[str] = None
+    event_type: EventType
+    location: Optional[dict] = None
+
+
 class EventApplication(BaseModel):
     id: Optional[str] = Field(default_factory=lambda: str(ObjectId()), alias="_id")
     title: str
@@ -58,6 +74,35 @@ class ApplicationCreate(BaseModel):
     end_time: datetime
     expected_participants: int
     needs: str
+    image_url: str | None = None
+    event_type: EventType
+    location: dict | None = None
+
+    @validator("location", always=True)
+    def validate_location(cls, v, values):
+        event_type = values.get("event_type")
+        if event_type == EventType.ONLINE:
+            if v is not None:
+                raise ValueError("Location must not be provided for an ONLINE event.")
+        elif event_type == EventType.OFFLINE:
+            if v is None:
+                raise ValueError("Location is required for an OFFLINE event.")
+
+            if "type" not in v or v["type"] not in ["dukat", "custom"]:
+                raise ValueError("Location type must be 'dukat' or 'custom'.")
+
+            if v["type"] == "dukat":
+                tower = v.get("tower")
+                room_number = v.get("room_number")
+                if tower not in ["F", "B"] or not room_number:
+                    raise ValueError("Invalid Dukat location details.")
+                if not is_valid_dukat_room(tower, room_number):
+                    raise ValueError("Invalid room.")
+            elif v["type"] == "custom":
+                if not v.get("address"):
+                    raise ValueError("Address is required for a custom location.")
+        return v
+
 class UserCreate(BaseModel):
     full_name: str
     email: str
