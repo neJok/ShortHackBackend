@@ -20,6 +20,7 @@ async def register(user_in: UserCreate):
     hashed_password = get_password_hash(user_in.password)
     user_data = user_in.dict(exclude={"password"})
     user_data["hashed_password"] = hashed_password
+    user_data["role"] = "student"
     user_data["_id"] = str(uuid.uuid4())
     new_user = await db.users.insert_one(user_data)
     created_user = await db.users.find_one({"_id": new_user.inserted_id})
