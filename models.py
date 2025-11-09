@@ -60,11 +60,14 @@ class EventApplication(BaseModel):
     start_time: datetime
     end_time: datetime
     organizer_id: str
+    organizer_name: str
     expected_participants: int
     needs: str
     status: str = "pending"  # pending, approved, rejected
-    assigned_room_id: Optional[str] = None
     curator_comment: Optional[str] = None
+    image_url: str | None = None
+    event_type: EventType
+    location: dict | None = None
 
 
 class ApplicationCreate(BaseModel):
