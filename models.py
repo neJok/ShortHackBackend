@@ -9,7 +9,7 @@ from enum import Enum
 
 
 
-class EventType(Enum):
+class EventType(str, Enum):
     ONLINE = "ONLINE"
     OFFLINE = "OFFLINE"
 
